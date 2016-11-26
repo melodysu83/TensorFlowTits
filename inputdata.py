@@ -18,6 +18,19 @@ class Dataset:
 		for _ in range(number_of_test_data):
 			self.test_set = self.test_set + [random.randint(1,number_of_samples)]
 
+	def create_one_hot_label(self,class_label):
+		label = []
+		for num_class in range(number_of_classes):
+			if num_class == class_label:
+				label = label + [1]
+			else:
+				label = label + [0]
+		return label
+
+	def create_numeric_label(self,class_label):
+		label = class_label
+		return label
+
 	def load_image_from_disk(self,class_label,filename):
 		image_data = []
 		path_of_image = self.paths[class_label] + filename + self.image_type
@@ -48,16 +61,20 @@ class Dataset:
 
 	def get_test_set(self):
 		images_data = None
-		images_label = []
+		images_label = None
 		for index in range(self.number_of_test_data):
 			filename = self.test_set[index]
 
 			for class_label in range(self.number_of_classes):
-				image_data = np.array([load_image_from_disk(classlabel,filename)])
+				image_data = np.array([load_image_from_disk(class_label,filename)])
+				image_label = np.array([create_one_hot_label(class_label)])
+				# image_label = np.array([create_numeric_label(class_label)])
+
 				if images_data == None:
 					images_data = image_data
+					images_label = image_label
 				else:
 					images_data = np.concatenate(images_data,image_data)
-				images_label = images_label + [class_label]
+					images_label = images_label + [image_label]
 
 		return images_data,images_label
