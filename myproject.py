@@ -1,30 +1,25 @@
-import cv2
-import copy
-import random
-import tensorflow as tf
-import numpy as np
-from inputdata import Dataset
-from neuralnet import MLP_net
+from controlmenu import Menu
 
-def main():
-	# define constants
-	paths = ["tooldata/","nontooldata/"]	
-	number_of_samples = 38000
-	number_of_classes = 2
-	image_width = 30
-	image_height = 40
-	image_type = "tiff"
+def main():	
+	# choose machine learning model
+	# (0: MLP, 1: RNN, 2: CNN)
+	model =  2      
+	training = True
+	testing = True	
 
-	# prepare input data
-	SurgicalData = Dataset(paths,number_of_samples,number_of_classes, image_width, image_height, image_type)
+	# setup
+	menu = Menu(training,testing)	
+
+	# start running
+	if model == menu.MLP: 			
+		menu.MLP_Process(15,100)    # epochs, batchsize
+
+	elif model == menu.RNN: 
+		menu.RNN_Process()
 	
-	# mlp method	
-	epochs = 15
-	batchsize = 100
-	n_nodes = [image_width*image_height, 256, 256, 64, number_of_classes]
-	MLP = MLP_net(number_of_samples,epochs,batchsize,n_nodes)
-	MLP.train_neural_network(SurgicalData)
-	MLP.test_neural_network(SurgicalData)
+	elif model == menu.CNN:
+		menu.CNN_Process(15,128,0.8) # epochs, batchsize, keep_rate
+	
 	
 if __name__ == "__main__":
     main()
