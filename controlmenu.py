@@ -6,6 +6,7 @@ import numpy as np
 from inputdata import Dataset
 from neuralnet import MLP_net
 from neuralnet import CNN_net
+from neuralnet import RNN_net
 
 class Menu:
 
@@ -37,7 +38,7 @@ class Menu:
 		self.Data = Dataset(self.paths,self.number_of_samples,self.number_of_classes, self.image_width, self.image_height, self.image_type)
 
 
-	def MLP_Process(self, epochs,batchsize): # multi-layer-perceptron
+	def MLP_Process(self, epochs, batchsize): # multi-layer-perceptron
 		# mlp method
 		# (with model accuracy 0.90263158)
 		print "mlp method"
@@ -49,17 +50,27 @@ class Menu:
 		if self.training:
 			MLP.train_neural_network(self.Data)
 
-		elif self.testing:
+		if self.testing:
 			MLP.test_neural_network(self.Data)
 
 
-	def RNN_Process(epochs,batchsize,keep_rate): # recurrent-neural-network
+	def RNN_Process(self, epochs, batchsize, chunk): # recurrent-neural-network
 		# rnn method
 		# (with model accuracy ?)
 		print "rnn method"
+		n_nodes = [chunk*chunk, self.number_of_classes]
+		sizes = [chunk, chunk, 128] # [chunk_size, n_chunks, rnn_size]
+		
+		RNN = RNN_net(self.number_of_samples,epochs,batchsize,n_nodes,sizes)
+		
+		if self.training:
+			RNN.train_neural_network(self.Data)
 
+		if self.testing:
+			RNN.test_neural_network(self.Data)		
+		
 
-	def CNN_Process(self, epochs,batchsize,keep_rate): # convolution-neural-network
+	def CNN_Process(self, epochs, batchsize, keep_rate): # convolution-neural-network
 		# cnn method
 		# (with model accuracy ?)
 		print "cnn method"
@@ -73,5 +84,5 @@ class Menu:
 		if self.training:
 			CNN.train_neural_network(self.Data)
 
-		elif self.testing:
+		if self.testing:
 			CNN.test_neural_network(self.Data)
