@@ -93,3 +93,115 @@ class MLP_net:
 			# validation stage
 			test_data,test_label = my_data.get_test_set()
 			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
+
+
+
+# convolutional neural network
+class CNN_net:
+	def __init__(self,number_of_samples,epochs,batchsize,n_nodes,sizes,keep_rate):
+		self.epochs = epochs
+		self.batchsize = batchsize
+		self.number_of_samples = number_of_samples
+
+		self.n_features = [n_nodes[0],n_nodes[1],n_nodes[2]]
+		self.fc_nodes = n_nodes[3] 		
+		self.number_of_classes = n_nodes[4]
+		self.window_size = sizes[0]
+		self.fc_imgsize = sizes[1]   # fully connected layer
+		self.reshape_size = sizes[2]
+		
+		self.x = tf.placeholder('float',[ None, self.reshape_size*self.reshape_size]) 
+		self.y = tf.placeholder('float') 
+
+		self.keep_rate = keep_rate
+		self.keep_prob = tf.placeholder(tf.float32) # mimic dead neuron
+
+		randnorm1 = tf.random_normal([self.window_size, self.window_size, self.n_features[0], self.n_features[1]])
+		randnorm2 = tf.random_normal([self.window_size, self.window_size, self.n_features[1], self.n_features[2]])
+		randnorm3 = tf.random_normal([self.fc_imgsize*self.fc_imgsize*self.n_features[2],self.fc_nodes])
+		randnorm4 = tf.random_normal([self.fc_nodes,self.number_of_classes])
+
+		self.weights = {'conv1':  tf.Variable(randnorm1,name = 'W_conv1'),
+				'conv2':  tf.Variable(randnorm2,name = 'W_conv2'),
+				'fc':     tf.Variable(randnorm3,name = 'W_fc'), 
+				'output': tf.Variable(randnorm4,name = 'W_output')
+		}
+		self.biases = { 'conv1':  tf.Variable(tf.random_normal([self.n_features[1]]),name = 'b_conv1'),
+				'conv2':  tf.Variable(tf.random_normal([self.n_features[2]]),name = 'b_conv1'),
+				'fc':     tf.Variable(tf.random_normal([self.fc_nodes]), name = 'b_fc'),
+				'output': tf.Variable(tf.random_normal([self.number_of_classes]),name = 'b_output')
+		}
+	
+	def conv2d(self,x, W):
+		# no depth in here
+		return tf.nn.conv2d(x,W,strides=[1,1,1,1], padding='SAME') # fights against local minimum
+
+	def maxpool2d(self,x):
+		# size of window movement of window
+		return tf.nn.max_pool(x, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
+
+	def neural_network_model(self,data):
+		data = tf.reshape(data, shape=[-1,self.reshape_size,self.reshape_size,1])
+		conv1 = tf.nn.relu(self.conv2d(data, self.weights['conv1'])+self.biases['conv1'])
+		conv1 = self.maxpool2d(conv1)
+		conv2 = tf.nn.relu(self.conv2d(conv1, self.weights['conv2'])+self.biases['conv2'])
+		conv2 = self.maxpool2d(conv2)
+		fc = tf.reshape(conv2,[-1, self.fc_imgsize*self.fc_imgsize*self.n_features[2]])
+		fc = tf.nn.relu(tf.matmul(fc,self.weights['fc'])+self.biases['fc'])
+		fc = tf.nn.dropout(fc,self.keep_rate)
+		output = tf.matmul(fc,self.weights['output'])+self.biases['output']
+		return output
+		
+
+	def train_neural_network(self, my_data):
+		print "training phase"
+		# prepare model 
+		prediction = self.neural_network_model(self.x)
+		cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction,self.y))
+		optimizer = tf.train.AdamOptimizer().minimize(cost)
+		
+		# prepare saver object
+		saver = tf.train.Saver(tf.all_variables())
+
+		with tf.Session() as sess:
+			sess.run(tf.initialize_all_variables())
+
+			# training stage
+			for epoch in range(self.epochs):
+				epoch_loss = 0
+				for batch_number in range(int(self.number_of_samples/self.batchsize)):
+					batch_x, batch_y = my_data.images_to_square_data_batch(batch_number,self.batchsize,self.reshape_size)
+					_, c = sess.run([optimizer, cost], feed_dict = {self.x: batch_x, self.y: batch_y})
+					epoch_loss += c
+				print('Epoch', epoch, 'completed out of', self.epochs,' loss:',epoch_loss)
+
+			correct = tf.equal(tf.argmax(prediction,1), tf.argmax(self.y,1))
+			accuracy = tf.reduce_mean(tf.cast(correct,'float'))
+
+			# validation stage
+			test_data,test_label = my_data.get_square_test_set(self.reshape_size)
+			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
+
+			# save model value
+			saver.save(sess, 'model/CNN_model.chk')
+		
+
+	def test_neural_network(self, my_data):
+		print "testing phase"
+		# prepare model 
+		prediction = self.neural_network_model(self.x)
+		cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction,self.y))
+		optimizer = tf.train.AdamOptimizer().minimize(cost)
+
+		# prepare saver object
+		saver = tf.train.Saver([self.weights['conv1'],self.weights['conv2'],self.weights['fc'],self.weights['output'],self.biases['conv1'],self.biases['conv2'],self.biases['fc'],self.biases['output']])
+				
+		with tf.Session() as sess:
+			saver.restore(sess,'model/CNN_model.chk')
+
+			correct = tf.equal(tf.argmax(prediction,1), tf.argmax(self.y,1))
+			accuracy = tf.reduce_mean(tf.cast(correct,'float'))
+			
+			# validation stage
+			test_data,test_label = my_data.get_square_test_set(self.reshape_size)
+			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
