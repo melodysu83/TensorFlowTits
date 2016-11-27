@@ -4,6 +4,7 @@ import random
 import tensorflow as tf
 import numpy as np
 from inputdata import Dataset
+from tensorflow.python.ops import rnn, rnn_cell
 
 # multi-layer perceptron neural network
 class MLP_net:
@@ -92,6 +93,95 @@ class MLP_net:
 			
 			# validation stage
 			test_data,test_label = my_data.get_test_set()
+			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
+
+
+# recurrent neural network
+class RNN_net:
+	def __init__(self,number_of_samples,epochs,batchsize,n_nodes,sizes):
+		self.epochs = epochs
+		self.batchsize = batchsize
+		self.number_of_samples = number_of_samples
+		self.number_of_classes = n_nodes[1]
+
+		self.n_nodes = [n_nodes[0],n_nodes[1]]
+		self.chunk_size = sizes[0]
+		self.reshape_size = sizes[0] 		
+		self.n_chunks = sizes[1]
+		self.rnn_size = sizes[2]
+		
+		self.x = tf.placeholder('float',[ None, self.n_chunks, self.chunk_size]) # our input data (28*28=784 pixels per data)
+		self.y = tf.placeholder('float') # the label of our data
+
+		self.layer = {'weights': tf.Variable(tf.random_normal([self.rnn_size, self.n_nodes[1]]), name='weights'),
+			      'biases': tf.Variable(tf.random_normal([self.n_nodes[1]]), name='biases')}
+
+	def neural_network_model(self,data):
+		data = tf.transpose(data, [1,0,2])
+		data = tf.reshape(data,[-1,self.chunk_size])
+		data = tf.split(0,self.n_chunks, data)
+		lstm_cell = rnn_cell.BasicLSTMCell(self.rnn_size)
+		outputs, states = rnn.rnn(lstm_cell, data, dtype=tf.float32)
+
+		# (input_data * weights) + biases
+		output = tf.add(tf.matmul(outputs[-1],self.layer['weights']),self.layer['biases'])
+		return output
+		
+
+	def train_neural_network(self, my_data):
+		print "training phase"
+		# prepare model 
+		prediction = self.neural_network_model(self.x)
+		cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction,self.y))
+		optimizer = tf.train.AdamOptimizer().minimize(cost)
+		
+		# prepare saver object
+		saver = tf.train.Saver(tf.all_variables())
+
+		with tf.Session() as sess:
+			sess.run(tf.initialize_all_variables())
+
+			# training stage
+			for epoch in range(self.epochs):
+				epoch_loss = 0
+				for batch_number in range(int(self.number_of_samples/self.batchsize)):
+					batch_x, batch_y = my_data.images_to_square_data_batch(batch_number,self.batchsize,self.reshape_size)
+					batch_x = batch_x.reshape((self.batchsize*self.number_of_classes,self.n_chunks,self.chunk_size))
+					_, c = sess.run([optimizer, cost], feed_dict = {self.x: batch_x, self.y: batch_y})
+					epoch_loss += c
+				print('Epoch', epoch, 'completed out of', self.epochs,' loss:',epoch_loss)
+
+			correct = tf.equal(tf.argmax(prediction,1), tf.argmax(self.y,1))
+			accuracy = tf.reduce_mean(tf.cast(correct,'float'))
+
+			# validation stage
+			test_data,test_label = my_data.get_square_test_set(self.reshape_size)
+			test_data = test_data.reshape(-1,self.n_chunks,self.chunk_size)
+			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
+
+			# save model value
+			saver.save(sess, 'model/RNN_model.chk')
+		
+
+	def test_neural_network(self, my_data):
+		print "testing phase"
+		# prepare model 
+		prediction = self.neural_network_model(self.x)
+		cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction,self.y))
+		optimizer = tf.train.AdamOptimizer().minimize(cost)
+
+		# prepare saver object
+		saver = tf.train.Saver(tf.all_variables())
+				
+		with tf.Session() as sess:
+			saver.restore(sess,'model/RNN_model.chk')
+
+			correct = tf.equal(tf.argmax(prediction,1), tf.argmax(self.y,1))
+			accuracy = tf.reduce_mean(tf.cast(correct,'float'))
+			
+			# validation stage
+			test_data,test_label = my_data.get_square_test_set(self.reshape_size)
+			test_data = test_data.reshape(-1,self.n_chunks,self.chunk_size)
 			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
 
 
