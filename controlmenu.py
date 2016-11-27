@@ -50,7 +50,7 @@ class Menu:
 		if self.training:
 			MLP.train_neural_network(self.Data)
 
-		if self.testing:
+		elif self.testing:
 			MLP.test_neural_network(self.Data)
 
 
@@ -66,7 +66,7 @@ class Menu:
 		if self.training:
 			RNN.train_neural_network(self.Data)
 
-		if self.testing:
+		elif self.testing:
 			RNN.test_neural_network(self.Data)		
 		
 
@@ -84,5 +84,5 @@ class Menu:
 		if self.training:
 			CNN.train_neural_network(self.Data)
 
-		if self.testing:
+		elif self.testing:
 			CNN.test_neural_network(self.Data)
