@@ -74,6 +74,8 @@ class MLP_net:
 
 			# save model value
 			saver.save(sess, 'model/MLP_model.chk')
+		sess.close()
+
 
 	def test_neural_network(self, my_data):
 		print "testing phase"
@@ -94,6 +96,53 @@ class MLP_net:
 			# validation stage
 			test_data,test_label = my_data.get_test_set()
 			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
+		sess.close()
+
+
+	def real_world_neural_network(self, my_data, scale):
+		print "real world implementation"
+		# prepare model 
+		prediction = self.neural_network_model(self.x)
+		cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction,self.y))
+		optimizer = tf.train.AdamOptimizer().minimize(cost)
+
+		# prepare neural network object
+		saver = tf.train.Saver([self.weights['h1'],self.weights['h2'],self.weights['h3'],self.weights['output'],self.biases['h1'],self.biases['h2'],self.biases['h3'],self.biases['output']])
+		
+		with tf.Session() as sess:
+			saver.restore(sess,'model/MLP_model.chk')
+
+			correct = tf.equal(tf.argmax(prediction,1), tf.argmax(self.y,1))
+			accuracy = tf.reduce_mean(tf.cast(correct,'float'))
+			predict = tf.argmax(prediction,1)
+			
+			# validation stage
+			while my_data.cap.isOpened():
+
+				# prepare video data object
+				ret, src = my_data.cap.read() # faster!
+				ret, src = my_data.cap.read()
+				frame = my_data.resize(src,scale)
+				gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+				# extract input data for neural network
+				_,test_data = my_data.patchify(gray,False) # image,square,reshape_size		
+
+				# obtain neural network output							
+				fire_index = predict.eval(feed_dict={self.x: test_data}, session=sess)
+
+				# draw it on the gray image
+				gray = my_data.draw_result(gray, fire_index)
+				
+				# display classification result
+				cv2.imshow('frame',frame)
+			    	cv2.imshow('gray',gray)
+			    	if cv2.waitKey(1) & 0xFF == ord('q'):
+					cv2.destroyAllWindows()
+					break
+		sess.close()
+		cap.release()
+		cv2.destroyAllWindows()
 
 
 # recurrent neural network
@@ -161,6 +210,7 @@ class RNN_net:
 
 			# save model value
 			saver.save(sess, 'model/RNN_model.chk')
+		sess.close()
 		
 
 	def test_neural_network(self, my_data):
@@ -183,6 +233,54 @@ class RNN_net:
 			test_data,test_label = my_data.get_square_test_set(self.reshape_size)
 			test_data = test_data.reshape(-1,self.n_chunks,self.chunk_size)
 			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
+		sess.close()
+
+
+	def real_world_neural_network(self, my_data, scale):
+		print "real world implementation"
+		# prepare model 
+		prediction = self.neural_network_model(self.x)
+		cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction,self.y))
+		optimizer = tf.train.AdamOptimizer().minimize(cost)
+
+		# prepare neural network object
+		saver = tf.train.Saver(tf.all_variables())
+		
+		with tf.Session() as sess:
+			saver.restore(sess,'model/RNN_model.chk')
+
+			correct = tf.equal(tf.argmax(prediction,1), tf.argmax(self.y,1))
+			accuracy = tf.reduce_mean(tf.cast(correct,'float'))
+			predict = tf.argmax(prediction,1)
+			
+			# validation stage
+			while my_data.cap.isOpened():
+
+				# prepare video data object
+				ret, src = my_data.cap.read() # faster!
+				ret, src = my_data.cap.read()
+				frame = my_data.resize(src,scale)
+				gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+				# extract input data for neural network
+				_,test_data = my_data.patchify(gray,True,self.reshape_size) # image,square,reshape_size		
+				test_data = test_data.reshape(-1,self.n_chunks,self.chunk_size)
+
+				# obtain neural network output							
+				fire_index = predict.eval(feed_dict={self.x: test_data}, session=sess)
+
+				# draw it on the gray image
+				gray = my_data.draw_result(gray, fire_index)
+				
+				# display classification result
+				cv2.imshow('frame',frame)
+			    	cv2.imshow('gray',gray)
+			    	if cv2.waitKey(1) & 0xFF == ord('q'):
+					cv2.destroyAllWindows()
+					break
+		sess.close()
+		cap.release()
+		cv2.destroyAllWindows()
 
 
 
@@ -204,7 +302,7 @@ class CNN_net:
 		self.y = tf.placeholder('float') 
 
 		self.keep_rate = keep_rate
-		self.keep_prob = tf.placeholder(tf.float32) # mimic dead neuron
+		self.keep_prob = tf.placeholder('float') # mimic dead neuron
 
 		randnorm1 = tf.random_normal([self.window_size, self.window_size, self.n_features[0], self.n_features[1]])
 		randnorm2 = tf.random_normal([self.window_size, self.window_size, self.n_features[1], self.n_features[2]])
@@ -274,7 +372,8 @@ class CNN_net:
 
 			# save model value
 			saver.save(sess, 'model/CNN_model.chk')
-		
+		sess.close()
+
 
 	def test_neural_network(self, my_data):
 		print "testing phase"
@@ -295,3 +394,50 @@ class CNN_net:
 			# validation stage
 			test_data,test_label = my_data.get_square_test_set(self.reshape_size)
 			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
+		sess.close()
+
+
+	def real_world_neural_network(self, my_data, scale):
+		print "real world implementation"
+		# prepare model 
+		prediction = self.neural_network_model(self.x)
+		cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction,self.y))
+		optimizer = tf.train.AdamOptimizer().minimize(cost)
+
+		# prepare neural network object
+		saver = tf.train.Saver([self.weights['conv1'],self.weights['conv2'],self.weights['fc'],self.weights['output'],self.biases['conv1'],self.biases['conv2'],self.biases['fc'],self.biases['output']])
+		
+		with tf.Session() as sess:
+			saver.restore(sess,'model/CNN_model.chk')
+
+			correct = tf.equal(tf.argmax(prediction,1), tf.argmax(self.y,1))
+			accuracy = tf.reduce_mean(tf.cast(correct,'float'))
+			predict = tf.argmax(prediction,1)
+			
+			# validation stage
+			while my_data.cap.isOpened():
+
+				# prepare video data object
+				ret, src = my_data.cap.read() # faster!
+				ret, src = my_data.cap.read()
+				frame = my_data.resize(src,scale)
+				gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+				# extract input data for neural network
+				_,test_data = my_data.patchify(gray,True,self.reshape_size) # image,square,reshape_size		
+	
+				# obtain neural network output							
+				fire_index = predict.eval(feed_dict={self.x: test_data}, session=sess)
+
+				# draw it on the gray image
+				gray = my_data.draw_result(gray, fire_index)
+				
+				# display classification result
+				cv2.imshow('frame',frame)
+			    	cv2.imshow('gray',gray)
+			    	if cv2.waitKey(1) & 0xFF == ord('q'):
+					cv2.destroyAllWindows()
+					break
+		sess.close()
+		cap.release()
+		cv2.destroyAllWindows()
