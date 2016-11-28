@@ -4,6 +4,7 @@ import random
 import tensorflow as tf
 import numpy as np
 from inputdata import Dataset
+from videodata import VideoData
 from neuralnet import MLP_net
 from neuralnet import CNN_net
 from neuralnet import RNN_net
@@ -18,25 +19,40 @@ class Menu:
 		self.image_width = 30
 		self.image_height = 40
 		self.image_type = "tiff"
-		
 
-	def __init__(self, training=True, testing=True):		
-		self.training = training
-		self.testing = testing
+		self.video_path = "surgicalvideo.avi"
+		self.video_scale = 0.5
+		self.video_overlap_size = [5,5]
+		self.video_patch_size = [self.image_height,self.image_width]
+
+
+
+	def __init__(self, mode = 0):	
+	
+		self.mode = mode # (0: training, 1: testing, 2: real world implementation)  
 
 		self.MLP = 0   # multi-layer-perceptron
 		self.RNN = 1   # recurrent-neural-network
 		self.CNN = 2   # convolution-neural-network
 		
+		self.training = 0     # training phase
+		self.testing = 1      # testing phase
+		self.real_world = 2   # real world implementation
+
 		self.paths = None	
 		self.number_of_samples = None
 		self.number_of_classes =  None
 		self.image_width =  None
 		self.image_height =  None
 		self.image_type =  None
+		self.video_path = None
+		self.video_scale = None
+		self.video_overlap_size = None
+		self.video_patch_size = None
+
 		self.Initial()
 		self.Data = Dataset(self.paths,self.number_of_samples,self.number_of_classes, self.image_width, self.image_height, self.image_type)
-
+		self.VidData = VideoData(self.video_path,self.video_patch_size,self.video_overlap_size)
 
 	def MLP_Process(self, epochs, batchsize): # multi-layer-perceptron
 		# mlp method
@@ -45,34 +61,41 @@ class Menu:
 		
 		n_nodes = [self.image_width*self.image_height, 256, 256, 64, self.number_of_classes]
 
-		MLP = MLP_net(self.number_of_samples,epochs,batchsize,self.n_nodes)
+		MLP = MLP_net(self.number_of_samples,epochs,batchsize,n_nodes)
 
-		if self.training:
+		if self.mode == self.training:
 			MLP.train_neural_network(self.Data)
 
-		elif self.testing:
+		elif self.mode == self.testing:
 			MLP.test_neural_network(self.Data)
+
+		elif self.mode == self.real_world:
+			MLP.real_world_neural_network(self.VidData, self.video_scale)
 
 
 	def RNN_Process(self, epochs, batchsize, chunk): # recurrent-neural-network
 		# rnn method
-		# (with model accuracy ?)
+		# (with model accuracy 0.92236841)
 		print "rnn method"
 		n_nodes = [chunk*chunk, self.number_of_classes]
 		sizes = [chunk, chunk, 128] # [chunk_size, n_chunks, rnn_size]
 		
 		RNN = RNN_net(self.number_of_samples,epochs,batchsize,n_nodes,sizes)
 		
-		if self.training:
+		if self.mode == self.training:
 			RNN.train_neural_network(self.Data)
 
-		elif self.testing:
-			RNN.test_neural_network(self.Data)		
-		
+		elif self.mode == self.testing:
+			RNN.test_neural_network(self.Data)	
+	
+		elif self.mode == self.real_world:
+			RNN.real_world_neural_network(self.VidData, self.video_scale)
+
+
 
 	def CNN_Process(self, epochs, batchsize, keep_rate): # convolution-neural-network
 		# cnn method
-		# (with model accuracy ?)
+		# (with model accuracy 0.98815787)
 		print "cnn method"
 
 		n_nodes = [1,32,64,1024,self.number_of_classes] # [n_features[0], n_features[1], n_features[2], fc_nodes, n_classes]
@@ -81,8 +104,13 @@ class Menu:
 		CNN = CNN_net(self.number_of_samples,epochs,batchsize,n_nodes,sizes,keep_rate)
 	
 	
-		if self.training:
+		if self.mode == self.training:
 			CNN.train_neural_network(self.Data)
 
-		elif self.testing:
+		elif self.mode == self.testing:
 			CNN.test_neural_network(self.Data)
+
+		elif self.mode == self.real_world:
+			CNN.real_world_neural_network(self.VidData, self.video_scale)
+
+		
