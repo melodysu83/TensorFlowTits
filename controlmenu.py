@@ -9,8 +9,14 @@ from neuralnet import MLP_net
 from neuralnet import CNN_net
 from neuralnet import RNN_net
 
+# Class/ Menu
+# desc/ This is a class for tcontemplating for proper actions according to user selections
+#           There are processes that corresponds to 3 types of neural network models.
+#           MLP_Porcess, RNN_Process and CNN_Process
+#           each process contains three possible actions depending on the user selection,
+#           you can be in either the testing, training, or real world implementation phase
 class Menu:
-
+                # This is another initialization function relating to data preparation.
 	def Initial(self):
 		# Task related modification can be changed here:
 		self.paths = ["tooldata/","nontooldata/"]	
@@ -26,7 +32,7 @@ class Menu:
 		self.video_patch_size = [self.image_height,self.image_width]
 
 
-
+                # This is an initialization function for object of this class.
 	def __init__(self, mode = 0):	
 	
 		self.mode = mode # (0: training, 1: testing, 2: real world implementation)  
