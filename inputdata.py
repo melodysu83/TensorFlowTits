@@ -3,7 +3,15 @@ import copy
 import random
 import tensorflow as tf
 import numpy as np
+
+# Class/Dataset
+# desc/ This is a class for training and testing dataset
+#           There are functions that extract sequential frames from videos
+#           Then turn it into overlapped image patches of size 30x40
+#           Because our classifier takes image inputs of 30x40 pixels
 class Dataset:
+        
+                # This is an initialization function for object of this class.
 	def __init__(self,paths,number_of_samples,number_of_classes,image_width, image_height, image_type):
 		self.paths = paths
 		self.number_of_samples = number_of_samples
@@ -16,7 +24,10 @@ class Dataset:
 		for i in range(self.test_set_size):
 			self.test_set = self.test_set + [random.randint(1,number_of_samples)]
 
-
+                # This is a functions that creates one-hot label to the trainig set
+                # in our case, since its binary classification, we will have
+                # label = (1,0) for surgical tool image patches
+                # label = (0,1) for non-surgical tool image patches
 	def create_one_hot_label(self,class_label):
 		label = []
 		for num_class in range(self.number_of_classes):
@@ -26,12 +37,15 @@ class Dataset:
 				label = label + [0]
 		return label
 
-
+                # This is a functions that creates numeric label to the trainig set
+                # in our case, since its binary classification, we will have
+                # label = 0 for surgical tool image patches
+                # label = 1 for non-surgical tool image patches
 	def create_numeric_label(self,class_label):
 		label = class_label
 		return label
 
-
+                # load image patches as training set
 	def load_image_from_disk(self,class_label,filename):
 		image_data = []
 		path_of_image = self.paths[class_label] + str(filename) + self.image_type
@@ -43,6 +57,8 @@ class Dataset:
 				image_data = image_data + [intensity_value]
 		return image_data
 
+                # generate training set and resize it into square patches,
+                # so that it's easier to rotate without needing to change its shape
 	def load_square_image_from_disk(self,class_label,filename, reshape_size):
 		image_data = []
 		path_of_image = self.paths[class_label] + str(filename) + self.image_type
@@ -55,6 +71,8 @@ class Dataset:
 				image_data = image_data + [intensity_value]
 		return image_data
 
+                # To prevend having to load the entire training set to RAM
+                # we import only a batch of image patches each time
 	def images_to_data_batch(self,batch_number,batch_size):
 		first_loop = True
 		for _ in range(batch_size):
@@ -73,7 +91,7 @@ class Dataset:
 					images_label = np.concatenate((images_label,image_label))
 		return images_data,images_label
 
-
+                # the function that gets / generates a list of image patches as test set
 	def get_test_set(self):
 		first_loop = True
 		for index in range(self.test_set_size):
@@ -92,7 +110,8 @@ class Dataset:
 					images_label = np.concatenate((images_label,image_label))
 		return images_data,images_label
 
-
+                # resize training set to square batches,
+                # so its easier for rotation without needing to change its shape
 	def images_to_square_data_batch(self,batch_number,batch_size,reshape_size):
 		first_loop = True
 		for _ in range(batch_size):
@@ -111,8 +130,9 @@ class Dataset:
 					images_label = np.concatenate((images_label,image_label))
 		return images_data,images_label
 
-
-	def get_square_test_set(self,reshape_size):
+               # resize testing set to square batches,
+                # so its easier for rotation without needing to change its shape
+                def get_square_test_set(self,reshape_size):
 		first_loop = True
 		for index in range(self.test_set_size):
 			filename = self.test_set[index]
