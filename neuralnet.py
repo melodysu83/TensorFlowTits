@@ -6,8 +6,14 @@ import numpy as np
 from inputdata import Dataset
 from tensorflow.python.ops import rnn, rnn_cell
 
-# multi-layer perceptron neural network
+# Class/MLP_net
+# breif/ multi-layer perceptron neural network
+# desc/ This is a class for defining our MLP network
+#           which saves/creates the structure of the model
+#           define the training procedure, testing procedure
+#           and real world implementation procedure
 class MLP_net:
+                # This is the initialization of the class objects
 	def __init__(self,number_of_samples,epochs,batchsize,n_nodes):
 		self.epochs = epochs
 		self.batchsize = batchsize
@@ -31,6 +37,7 @@ class MLP_net:
 			'output': tf.Variable(tf.random_normal([self.n_nodes[4]],name = 'b_output'))
 		}
 
+                # This function defines our MLP model structure
 	def neural_network_model(self,data):
 		# (input_data * weights) + biases
 		n_layer1 = tf.add(tf.matmul(data,self.weights['h1']),self.biases['h1'])
@@ -42,7 +49,8 @@ class MLP_net:
 		output = tf.add(tf.matmul(n_layer3,self.weights['output']),self.biases['output'])
 		return output
 		
-
+                # This is a function that tests how MLP classifier works
+                # in training phase for our training data set
 	def train_neural_network(self, my_data):
 		print "training phase"
 		# prepare model 
@@ -76,7 +84,8 @@ class MLP_net:
 			saver.save(sess, 'model/MLP_model.chk')
 		sess.close()
 
-
+                # This is a function that tests how MLP classifier works
+                # in testing phase for our testing data set
 	def test_neural_network(self, my_data):
 		print "testing phase"
 		# prepare model 
@@ -98,7 +107,8 @@ class MLP_net:
 			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
 		sess.close()
 
-
+                # This is a function that tests how MLP classifier works
+                # for identifying surgical instruments in real time surgical operations video
 	def real_world_neural_network(self, my_data, scale):
 		print "real world implementation"
 		# prepare model 
@@ -145,8 +155,14 @@ class MLP_net:
 		cv2.destroyAllWindows()
 
 
-# recurrent neural network
+# Class/RNN_net
+# breif/ recurrent neural network
+# desc/ This is a class for defining our RNN network
+#           which saves/creates the structure of the model
+#           define the training procedure, testing procedure
+#           and real world implementation procedure
 class RNN_net:
+                # This is the initialization of the class objects
 	def __init__(self,number_of_samples,epochs,batchsize,n_nodes,sizes):
 		self.epochs = epochs
 		self.batchsize = batchsize
@@ -165,18 +181,22 @@ class RNN_net:
 		self.layer = {'weights': tf.Variable(tf.random_normal([self.rnn_size, self.n_nodes[1]]), name='weights'),
 			      'biases': tf.Variable(tf.random_normal([self.n_nodes[1]]), name='biases')}
 
+                # This function defines our RNN model structure
 	def neural_network_model(self,data):
-		data = tf.transpose(data, [1,0,2])
+		data = tf.transpose(data, [1,0,2])  # This does not have much significance to it
+                                                                                       # its just changing and reforming the shape so that
+                                                                                        # tensorflow model will be satified with it !
 		data = tf.reshape(data,[-1,self.chunk_size])
 		data = tf.split(0,self.n_chunks, data)
-		lstm_cell = rnn_cell.BasicLSTMCell(self.rnn_size)
+		lstm_cell = rnn_cell.BasicLSTMCell(self.rnn_size)   # The LSTM Cell function in TensorFlow
 		outputs, states = rnn.rnn(lstm_cell, data, dtype=tf.float32)
 
 		# (input_data * weights) + biases
 		output = tf.add(tf.matmul(outputs[-1],self.layer['weights']),self.layer['biases'])
 		return output
 		
-
+                # This is a function that tests how RNN classifier works
+                # in training phase for our training data set
 	def train_neural_network(self, my_data):
 		print "training phase"
 		# prepare model 
@@ -212,7 +232,8 @@ class RNN_net:
 			saver.save(sess, 'model/RNN_model.chk')
 		sess.close()
 		
-
+                # This is a function that tests how RNN classifier works
+                # in testing phase for our testing data set
 	def test_neural_network(self, my_data):
 		print "testing phase"
 		# prepare model 
@@ -235,7 +256,8 @@ class RNN_net:
 			print('Accuracy:',accuracy.eval({self.x:test_data, self.y:test_label}))
 		sess.close()
 
-
+                # This is a function that tests how RNN classifier works
+                # for identifying surgical instruments in real time surgical operations video
 	def real_world_neural_network(self, my_data, scale):
 		print "real world implementation"
 		# prepare model 
@@ -284,8 +306,16 @@ class RNN_net:
 
 
 
-# convolutional neural network
+# Class/CNN_net
+# breif/ onvolutional neural network
+# desc/ This is a class for defining our CNN network
+#           which saves/creates the structure of the model
+#           define the training procedure, testing procedure
+#           and real world implementation procedure
+#           There are more complex computation in CNN, so we also created some helper functions
+#           like convolution and so on...
 class CNN_net:
+                # This is the initialization of the class objects
 	def __init__(self,number_of_samples,epochs,batchsize,n_nodes,sizes,keep_rate):
 		self.epochs = epochs
 		self.batchsize = batchsize
@@ -328,6 +358,7 @@ class CNN_net:
 		# size of window movement of window
 		return tf.nn.max_pool(x, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
 
+                # This function defines our CNN model structure
 	def neural_network_model(self,data):
 		data = tf.reshape(data, shape=[-1,self.reshape_size,self.reshape_size,1])
 		conv1 = tf.nn.relu(self.conv2d(data, self.weights['conv1'])+self.biases['conv1'])
@@ -340,7 +371,8 @@ class CNN_net:
 		output = tf.matmul(fc,self.weights['output'])+self.biases['output']
 		return output
 		
-
+                # This is a function that tests how CNN classifier works
+                # in training phase for our training data set
 	def train_neural_network(self, my_data):
 		print "training phase"
 		# prepare model 
@@ -374,7 +406,8 @@ class CNN_net:
 			saver.save(sess, 'model/CNN_model.chk')
 		sess.close()
 
-
+                # This is a function that tests how CNN classifier works
+                # in testing phase for our testing data set
 	def test_neural_network(self, my_data):
 		print "testing phase"
 		# prepare model 
@@ -397,6 +430,8 @@ class CNN_net:
 		sess.close()
 
 
+                # This is a function that tests how CNN classifier works
+                # for identifying surgical instruments in real time surgical operations video
 	def real_world_neural_network(self, my_data, scale):
 		print "real world implementation"
 		# prepare model 
